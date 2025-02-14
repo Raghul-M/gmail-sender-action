@@ -1,0 +1,29 @@
+name: 'Gmail Sender Action'
+description: 'Send emails to multiple recipients using Gmail with Cusotmize Template'
+inputs:
+  sender_email:
+    description: 'Gmail address of the sender'
+    required: true
+  app_password:
+    description: 'Gmail App Password for authentication'
+    required: true
+  receiver_emails:
+    description: 'Comma-separated list of recipient email addresses (max 10)'
+    required: true
+  template_path:
+    description: 'Path to HTML template file in your repository'
+    required: true
+  subject:
+    description: 'Email subject line'
+    default: 'Email from GitHub Action'
+    required: false
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    SENDER_EMAIL: ${{ inputs.sender_email }}
+    APP_PASSWORD: ${{ inputs.app_password }}
+    RECEIVER_EMAILS: ${{ inputs.receiver_emails }}
+    TEMPLATE_PATH: ${{ inputs.template_path }}
+    SUBJECT: ${{ inputs.subject }}
