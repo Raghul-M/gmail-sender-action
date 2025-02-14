@@ -3,69 +3,49 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List
-
 def send_email(sender_email: str, receiver_emails: List[str], subject: str, template_path: str, app_password: str) -> bool:
     """
     Send email using Gmail SMTP with HTML template to multiple recipients (up to 5)
     """
     try:
+        # Validate number of recipients
         if len(receiver_emails) > 5:
             raise ValueError("Maximum 5 recipients allowed")
-
-        receiver_emails = [email.strip() for email in receiver_emails]
-
-        # Read HTML template with explicit encoding
-        with open(template_path, 'r', encoding='utf-8') as file:
+        # Read HTML template
+        with open(template_path, 'r') as file:
             html_content = file.read()
-
-        # Debugging: Ensure it's a string
-        print(f"Type of html_content: {type(html_content)}")  # Should print <class 'str'>
-
-        # ✅ Ensure sender_email and subject are strings
-        sender_email = str(sender_email)
-        subject = str(subject)
-
         # Create MIME message
         msg = MIMEMultipart('alternative')
-        msg['From'] = f"GitHub Action <{sender_email}>"
+        msg['From'] = sender_email
         msg['To'] = ', '.join(receiver_emails)
         msg['Subject'] = subject
-        msg['MIME-Version'] = '1.0'
-
-        # ✅ Ensure MIMEText content is a string
-        html_part = MIMEText(html_content, 'html', 'utf-8')
+        # Add HTML content
+        html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
-
-        # ✅ Ensure SMTP commands work with strings
+        # Create SMTP session
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.ehlo()
             server.starttls()
-            server.ehlo()
             server.login(sender_email, app_password)
-
-            for recipient in receiver_emails:
-                try:
-                    server.sendmail(sender_email, recipient, msg.as_string())
-                    print(f"✅ Email sent successfully to: {recipient}")
-                except Exception as e:
-                    print(f"❌ Failed to send to {recipient}: {str(e)}")
-
+            server.send_message(msg)
+        
+        print(f"Email has been sent to: {', '.join(receiver_emails)}")
         return True
-
+        
     except FileNotFoundError:
-        print(f"❌ Template file not found: {template_path}")
+        print(f"Template file not found: {template_path}")
         return False
     except Exception as e:
-        print(f"❌ Failed to send email: {str(e)}")
+        print(f"Failed to send email: {str(e)}")
         return False
-
 if __name__ == "__main__":
-    sender_email = os.environ["SENDER_EMAIL"].strip()
-    app_password = os.environ["APP_PASSWORD"].strip()
-    receiver_emails = [email.strip() for email in os.environ["RECEIVER_EMAILS"].split(',')]
-    template_path = os.environ["TEMPLATE_PATH"].strip()
-    subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
-
+    # Get inputs from environment variables
+    sender_email = os.environ["SENDER_EMAIL"]
+    app_password = os.environ["APP_PASSWORD"]
+    receiver_emails = os.environ["RECEIVER_EMAILS"].split(',')
+    template_path = os.environ["TEMPLATE_PATH"]
+    subject = os.environ.get("SUBJECT", "Email from GitHub Action")
+    
+    # Send email
     success = send_email(
         sender_email=sender_email,
         receiver_emails=receiver_emails,
@@ -73,5 +53,6 @@ if __name__ == "__main__":
         template_path=template_path,
         app_password=app_password
     )
-
+    
+    # Set exit code based on success
     exit(0 if success else 1)
