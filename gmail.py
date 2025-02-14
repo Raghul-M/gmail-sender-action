@@ -13,27 +13,36 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         if len(receiver_emails) > 5:
             raise ValueError("Maximum 5 recipients allowed")
 
+        # Clean email addresses - remove any whitespace
+        receiver_emails = [email.strip() for email in receiver_emails]
+        
         # Read HTML template
         with open(template_path, 'r') as file:
             html_content = file.read()
 
         # Create MIME message
         msg = MIMEMultipart('alternative')
-        msg['From'] = sender_email
+        msg['From'] = f"GitHub Action <{sender_email}>"  # Fixed sender format
         msg['To'] = ', '.join(receiver_emails)
         msg['Subject'] = subject
+        msg['MIME-Version'] = '1.0'  # Add MIME version
 
         # Add HTML content
-        html_part = MIMEText(html_content, 'html')
+        html_part = MIMEText(html_content, 'html', 'utf-8')  # Specify encoding
         msg.attach(html_part)
 
         # Create SMTP session
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, app_password)
-            server.send_message(msg)
+            # Send to each recipient individually
+            for recipient in receiver_emails:
+                try:
+                    server.sendmail(sender_email, recipient, msg.as_string())
+                    print(f"Email sent successfully to: {recipient}")
+                except Exception as e:
+                    print(f"Failed to send to {recipient}: {str(e)}")
         
-        print(f"Email has been sent to: {', '.join(receiver_emails)}")
         return True
         
     except FileNotFoundError:
@@ -43,58 +52,22 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         print(f"Failed to send email: {str(e)}")
         return False
 
-def get_valid_email_input() -> str:
-    """Get and validate email input from user"""
-    while True:
-        email = input("Enter email address: ").strip()
-        if '@' in email and '.' in email:  # Basic email validation
-            return email
-        print("Invalid email format. Please try again.")
-
 if __name__ == "__main__":
-    # Sender details
-    sender_email = "raghulmadhavan1@gmail.com"
-    app_password = ""  # Your Gmail App Password here
+    # Get inputs from environment variables
+    sender_email = os.environ["SENDER_EMAIL"].strip()
+    app_password = os.environ["APP_PASSWORD"].strip()
+    receiver_emails = [email.strip() for email in os.environ["RECEIVER_EMAILS"].split(',')]
+    template_path = os.environ["TEMPLATE_PATH"].strip()
+    subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
     
-    # Get number of recipients
-    while True:
-        try:
-            num_recipients = int(input("Enter number of recipients (max 5): "))
-            if 1 <= num_recipients <= 5:
-                break
-            print("Please enter a number between 1 and 5")
-        except ValueError:
-            print("Please enter a valid number")
-
-    # Collect recipient emails
-    receiver_emails = []
-    print("\nEnter email addresses for recipients:")
-    for i in range(num_recipients):
-        print(f"\nRecipient {i+1}:")
-        email = get_valid_email_input()
-        receiver_emails.append(email)
+    # Send email
+    success = send_email(
+        sender_email=sender_email,
+        receiver_emails=receiver_emails,
+        subject=subject,
+        template_path=template_path,
+        app_password=app_password
+    )
     
-    # Email details
-    template_path = "templates/email_template.html"
-    subject = "Generated mail"
-    
-    # Confirm before sending
-    print("\nReady to send email to:")
-    for i, email in enumerate(receiver_emails, 1):
-        print(f"{i}. {email}")
-    
-    confirm = input("\nSend email? (y/n): ").lower()
-    if confirm == 'y':
-        success = send_email(
-            sender_email=sender_email,
-            receiver_emails=receiver_emails,
-            subject=subject,
-            template_path=template_path,
-            app_password=app_password
-        )
-        if success:
-            print("\nEmails sent successfully!")
-        else:
-            print("\nFailed to send emails.")
-    else:
-        print("\nEmail sending cancelled.")
+    # Set exit code based on success
+    exit(0 if success else 1)
