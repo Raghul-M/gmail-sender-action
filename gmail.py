@@ -21,6 +21,10 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         # Debugging: Ensure it's a string
         print(f"Type of html_content: {type(html_content)}")  # Should print <class 'str'>
 
+        # ✅ Ensure sender_email and subject are strings
+        sender_email = str(sender_email)
+        subject = str(subject)
+
         # Create MIME message
         msg = MIMEMultipart('alternative')
         msg['From'] = f"GitHub Action <{sender_email}>"
@@ -28,12 +32,15 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         msg['Subject'] = subject
         msg['MIME-Version'] = '1.0'
 
-        # ✅ Correct way: Pass as string, not bytes
+        # ✅ Ensure MIMEText content is a string
         html_part = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(html_part)
 
+        # ✅ Ensure SMTP commands work with strings
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.ehlo()
             server.starttls()
+            server.ehlo()
             server.login(sender_email, app_password)
 
             for recipient in receiver_emails:
@@ -57,12 +64,7 @@ if __name__ == "__main__":
     app_password = os.environ["APP_PASSWORD"].strip()
     receiver_emails = [email.strip() for email in os.environ["RECEIVER_EMAILS"].split(',')]
     template_path = os.environ["TEMPLATE_PATH"].strip()
-    subject = os.environ.get("SUBJECT", "Email from GitHub Action")
-
-    # Ensure all environment variables are strings
-    sender_email = str(sender_email)
-    app_password = str(app_password)
-    subject = str(subject)
+    subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
 
     success = send_email(
         sender_email=sender_email,
