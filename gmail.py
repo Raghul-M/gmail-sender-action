@@ -32,30 +32,30 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         html_part = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(html_part)
 
-        # Convert message to string
-        email_message = msg.as_string()
-
         print("Connecting to SMTP server...")
-        # Create SMTP session
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             
-            # Ensure app_password is str
+            print("Attempting login...")
+            # Convert password to string if it's bytes
             if isinstance(app_password, bytes):
                 app_password = app_password.decode('utf-8')
             
-            print("Attempting login...")
-            server.login(str(sender_email), str(app_password))
+            # Ensure both credentials are strings and properly encoded
+            sender_email = str(sender_email).strip()
+            app_password = str(app_password).strip()
             
+            try:
+                server.login(sender_email, app_password)
+                print("Login successful!")
+            except Exception as login_error:
+                print(f"Login error details: {str(login_error)}")
+                raise
+
             print("Sending email...")
-            # Send email
-            server.sendmail(
-                from_addr=sender_email,
-                to_addrs=receiver_emails,
-                msg=email_message
-            )
-        
-        print(f"Email has been sent to: {', '.join(receiver_emails)}")
+            server.send_message(msg)
+            print(f"Email sent successfully to: {', '.join(receiver_emails)}")
+            
         return True
         
     except FileNotFoundError:
@@ -69,14 +69,15 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
 
 if __name__ == "__main__":
     try:
-        # Get inputs from environment variables
+        # Get and clean inputs from environment variables
         sender_email = os.environ["SENDER_EMAIL"].strip()
         app_password = os.environ["APP_PASSWORD"].strip()
         receiver_emails = [email.strip() for email in os.environ["RECEIVER_EMAILS"].split(',')]
         template_path = os.environ["TEMPLATE_PATH"].strip()
         subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
         
-        # Debug information
+        # Debug information (without showing password)
+        print(f"Debug Info:")
         print(f"Sender: {sender_email}")
         print(f"Recipients: {receiver_emails}")
         print(f"Template: {template_path}")
