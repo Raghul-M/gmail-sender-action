@@ -26,9 +26,9 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         msg['MIME-Version'] = '1.0'
 
         # Encode content correctly
+        print(type(html_content))
         html_part = MIMEText(html_content.encode('utf-8'), 'html', 'utf-8')
         msg.attach(html_part)
-
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, app_password)
