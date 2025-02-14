@@ -1,92 +1,90 @@
 import smtplib
 import os
-import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List
 
 def send_email(sender_email: str, receiver_emails: List[str], subject: str, template_path: str, app_password: str) -> bool:
     """
-    Send email using Gmail SMTP with HTML template to multiple recipients
+    Send email using Gmail SMTP with HTML template to multiple recipients (up to 5)
     """
     try:
-        # Debug prints to check input types
-        print(f"Type of sender_email: {type(sender_email)}")
-        print(f"Type of app_password: {type(app_password)}")
-        
-        # Clean and validate inputs
-        sender_email = str(sender_email).strip()
-        app_password = str(app_password).strip()
-        receiver_emails = [str(email).strip() for email in receiver_emails]
+        # Validate number of recipients
+        if len(receiver_emails) > 5:
+            raise ValueError("Maximum 5 recipients allowed")
 
-        # Read template
-        with open(template_path, 'r', encoding='utf-8') as file:
+        # Read HTML template
+        with open(template_path, 'r') as file:
             html_content = file.read()
 
-        # Create message
+        # Create MIME message
         msg = MIMEMultipart('alternative')
         msg['From'] = sender_email
         msg['To'] = ', '.join(receiver_emails)
         msg['Subject'] = subject
-        
-        html_part = MIMEText(html_content, 'html', 'utf-8')
+
+        # Add HTML content
+        html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
 
-        # Connect to SMTP
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.ehlo()  # Added explicit EHLO
-        server.starttls()
-        server.ehlo()  # Added second EHLO after TLS
-        
-        print("Attempting authentication...")
-        try:
-            # Try direct authentication
+        # Create SMTP session
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
             server.login(sender_email, app_password)
-        except smtplib.SMTPAuthenticationError as auth_error:
-            print(f"Authentication failed: {str(auth_error)}")
-            raise
-        except Exception as e:
-            print(f"Unexpected error during authentication: {str(e)}")
-            raise
-
-        # Send email
-        server.send_message(msg)
-        server.quit()
+            server.send_message(msg)
         
-        print(f"Email sent successfully to: {', '.join(receiver_emails)}")
+        print(f"Email has been sent to: {', '.join(receiver_emails)}")
         return True
-
+        
+    except FileNotFoundError:
+        print(f"Template file not found: {template_path}")
+        return False
     except Exception as e:
-        print(f"Error: {str(e)}")
-        import traceback
-        print(f"Full traceback: {traceback.format_exc()}")
-        if 'server' in locals():
-            try:
-                server.quit()
-            except:
-                pass
+        print(f"Failed to send email: {str(e)}")
         return False
 
+def get_valid_email_input() -> str:
+    """Get and validate email input from user"""
+    while True:
+        email = input("Enter email address: ").strip()
+        if '@' in email and '.' in email:  # Basic email validation
+            return email
+        print("Invalid email format. Please try again.")
+
 if __name__ == "__main__":
-    try:
-        # Get environment variables
-        sender_email = os.environ.get("GMAIL_SENDER", "").strip()
-        app_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
-        receiver_emails = [email.strip() for email in os.environ.get("RECIPIENTS", "").split(',')]
-        template_path = os.environ.get("TEMPLATE_PATH", "").strip()
-        subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
+    # Sender details
+    sender_email = "raghulmadhavan1@gmail.com"
+    app_password = ""  # Your Gmail App Password here
+    
+    # Get number of recipients
+    while True:
+        try:
+            num_recipients = int(input("Enter number of recipients (max 5): "))
+            if 1 <= num_recipients <= 5:
+                break
+            print("Please enter a number between 1 and 5")
+        except ValueError:
+            print("Please enter a valid number")
 
-        # Validate required inputs
-        if not all([sender_email, app_password, receiver_emails, template_path]):
-            raise ValueError("Missing required environment variables")
-
-        # Debug info (without sensitive data)
-        print("Configuration:")
-        print(f"Sender: {sender_email}")
-        print(f"Recipients: {receiver_emails}")
-        print(f"Template: {template_path}")
-        print(f"Subject: {subject}")
-
+    # Collect recipient emails
+    receiver_emails = []
+    print("\nEnter email addresses for recipients:")
+    for i in range(num_recipients):
+        print(f"\nRecipient {i+1}:")
+        email = get_valid_email_input()
+        receiver_emails.append(email)
+    
+    # Email details
+    template_path = "templates/email_template.html"
+    subject = "Generated mail"
+    
+    # Confirm before sending
+    print("\nReady to send email to:")
+    for i, email in enumerate(receiver_emails, 1):
+        print(f"{i}. {email}")
+    
+    confirm = input("\nSend email? (y/n): ").lower()
+    if confirm == 'y':
         success = send_email(
             sender_email=sender_email,
             receiver_emails=receiver_emails,
@@ -94,11 +92,9 @@ if __name__ == "__main__":
             template_path=template_path,
             app_password=app_password
         )
-
-        exit(0 if success else 1)
-
-    except Exception as e:
-        print(f"Fatal error: {str(e)}")
-        import traceback
-        print(f"Main traceback: {traceback.format_exc()}")
-        exit(1)
+        if success:
+            print("\nEmails sent successfully!")
+        else:
+            print("\nFailed to send emails.")
+    else:
+        print("\nEmail sending cancelled.")
