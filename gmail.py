@@ -70,9 +70,9 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
 if __name__ == "__main__":
     try:
         # Get environment variables
-        sender_email = os.environ.get("SENDER_EMAIL", "").strip()
-        app_password = os.environ.get("APP_PASSWORD", "").strip()
-        receiver_emails = [email.strip() for email in os.environ.get("RECEIVER_EMAILS", "").split(',')]
+        sender_email = os.environ.get("GMAIL_SENDER", "").strip()
+        app_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+        receiver_emails = [email.strip() for email in os.environ.get("RECIPIENTS", "").split(',')]
         template_path = os.environ.get("TEMPLATE_PATH", "").strip()
         subject = os.environ.get("SUBJECT", "Email from GitHub Action").strip()
 
