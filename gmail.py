@@ -18,6 +18,9 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         with open(template_path, 'r', encoding='utf-8') as file:
             html_content = file.read()
 
+        # Debugging: Ensure it's a string
+        print(f"Type of html_content: {type(html_content)}")  # Should print <class 'str'>
+
         # Create MIME message
         msg = MIMEMultipart('alternative')
         msg['From'] = f"GitHub Action <{sender_email}>"
@@ -25,10 +28,10 @@ def send_email(sender_email: str, receiver_emails: List[str], subject: str, temp
         msg['Subject'] = subject
         msg['MIME-Version'] = '1.0'
 
-        # Encode content correctly
-        print(type(html_content))
-        html_part = MIMEText(html_content.encode('utf-8'), 'html', 'utf-8')
+        # ✅ Correct way: Pass as string, not bytes
+        html_part = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(html_part)
+
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, app_password)
