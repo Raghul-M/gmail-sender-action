@@ -46,7 +46,7 @@ You can use this **Gmail Sender GitHub Action** for various automation scenarios
 Go to **GitHub Repo → Settings → Secrets and Variables → Actions** and add:
 - **`GMAIL_SENDER`** → Your Gmail address
 - **`GMAIL_APP_PASSWORD`** → Your Gmail App Password
-- **`RECIPIENTS`** → Your Recipients upto 5 eg : eg1@gmail.com, eg2@gmail.com
+- **`RECIPIENTS`** → Your Recipients upto 5 eg : person1@gmail.com, person2@gmail.com
 
 ### 3️⃣ Create Workflow File
 Inside `.github/workflows/{your-filename}.yml`, add the following workflow:
