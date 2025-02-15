@@ -1,5 +1,9 @@
 name: 'Gmail Sender Action'
 description: 'Send emails to multiple recipients using Gmail with Cusotmize Template'
+author: "Raghul M"
+branding:
+  icon: "mail"
+  color: "blue"
 inputs:
   sender_email:
     description: 'Gmail address of the sender'
